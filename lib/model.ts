@@ -50,7 +50,7 @@ export const MODEL: ModelConstants = {
 };
 
 export const MODEL_VERSION = 'comps-1';
-export const EARLY_ROWS = 138;
+export const EARLY_ROWS = 140;
 export const ABOVE_FLOOR_ROWS = 20;
 export const LIVE_ROWS = 24;
 
@@ -258,32 +258,70 @@ export function stepText(step: FarmStep): string {
   return s;
 }
 
+function holdDaysFor(age: number | null): number {
+  if (age === null || age < 90) return 90;
+  if (age < 365) return 60;
+  return 30;
+}
+
+function actionFor(p: SnapshotProtocol, capital: number, chain: string): string {
+  const c = (p.category ?? '').toLowerCase();
+  const name = p.name;
+  if (c.includes('lend') || c.includes('cdp') || c.includes('collateral'))
+    return `Supply $${capital} USDC collateral into ${name}'s verified market on ${chain}; borrow conservative 20% to earn borrower airdrop weighting.`;
+  if (c.includes('dex') || c.includes('yield') || c.includes('leveraged farm'))
+    return `Provide $${capital} liquidity to ${name}'s highest-volume pool on ${chain}; stake LP position in verified protocol gauge.`;
+  if (c.includes('bridge') || c.includes('cross chain'))
+    return `Bridge $${capital} USDC to ${chain} via ${name}'s canonical gateway; deploy bridged liquidity into ecosystem app.`;
+  if (c.includes('staking') || c.includes('restak'))
+    return `Restake $${capital} equivalent into ${name} on ${chain}; delegate staking shares to verified active AVS operator nodes.`;
+  if (c.includes('perpetual') || c.includes('derivative'))
+    return `Deposit $${capital} USDC margin into ${name} on ${chain}; execute 1 delta-neutral hedging contract to record active trading volume.`;
+  if (c.includes('prediction'))
+    return `Fund $${capital} USDC into ${name} on ${chain}; submit 1 verified prediction market outcome to qualify for oracle fee distribution.`;
+  if (c.includes('rwa'))
+    return `Complete KYC verification on ${name}'s portal; mint $${capital} of tokenized institutional treasury bills on ${chain}.`;
+  return `Deposit $${capital} into ${name}'s primary audited liquidity vault on ${chain} and maintain active holding status.`;
+}
+
 export function farmSteps(p: SnapshotProtocol, age: number | null): FarmStep[] {
   const chain = chainOf(p);
   const capital = capitalFor(p);
-  const buffer = capital + 20;
+  const buffer = capital + 25;
   const secChain = p.chains.length > 1 ? p.chains[1]! : 'Ethereum';
+  const hold = holdDaysFor(age);
+  const action = actionFor(p, capital, chain);
 
   return [
     {
-      text: `Use a fresh wallet that holds only the funds you plan to farm, and keep its seed phrase offline and never in a screenshot.`,
-      cost: `nothing to create, and never pay anyone to set it up`,
+      text: `Generate a fresh dedicated EOA cold wallet for ${p.name} interactions; store seed phrase offline in cold storage with zero prior transaction taint.`,
+      cost: `free to create; $0 gas fee`,
       time: `10 minutes`,
     },
     {
-      text: `Fund the wallet with $${buffer} of USDC on ${chain} so the position and its gas are covered in one funding.`,
-      cost: `$${buffer} of capital plus under $1 of gas per transaction`,
-      time: `20 minutes`,
-    },
-    {
-      text: `Deposit $${capital} into a ${p.name} curated vault or liquidity pool on ${chain} and keep the vault shares.`,
-      cost: `$${capital} of capital and under $1 of gas per transaction`,
-      time: `15 minutes to set up`,
-    },
-    {
-      text: `Repeat the position on ${secChain} with half the capital ($${Math.round(capital / 2)}), so the wallet is active on two of the protocol's chains.`,
-      cost: `about $${Math.round(capital / 2)} more capital and about $6-$12 of gas per transaction`,
+      text: `Fund wallet with $${buffer} USDC and 0.012 ETH gas buffer on ${chain} via direct exchange withdrawal or official canonical bridge.`,
+      cost: `$${buffer} capital buffer plus under $1.50 gas & bridging fee`,
       time: `15 minutes`,
+    },
+    {
+      text: action,
+      cost: `$${capital} allocated capital plus about $2.50 execution gas`,
+      time: `20 minutes to set up`,
+    },
+    {
+      text: `Deploy secondary tranche of $${Math.round(capital / 2)} to ${secChain} deployment of ${p.name} to establish multi-chain protocol activity tier.`,
+      cost: `about $${Math.round(capital / 2)} additional capital and under $1.00 L2 gas`,
+      time: `15 minutes`,
+    },
+    {
+      text: `Execute 1 qualifying weekly interaction (rebalance, harvest accrued points, or submit governance vote) every 7 days across minimum ${hold} days.`,
+      cost: `about $1.20 gas per weekly cycle`,
+      time: `5 minutes/week over ${hold} days`,
+    },
+    {
+      text: `Verify Merkle proof allocation on ${p.name}'s official portal; claim governance token allocation; safely unwind LP/collateral and return funds.`,
+      cost: `under $3.50 claim and withdrawal transaction fee`,
+      time: `15 minutes to unwind`,
     },
   ];
 }
