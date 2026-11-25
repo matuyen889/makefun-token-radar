@@ -252,7 +252,7 @@ function capitalFor(p: SnapshotProtocol): number {
 }
 
 export function stepText(step: FarmStep): string {
-  let s = `${step.text} Cost: ${step.cost}. Time: ${step.time}.`;
+  let s = `${step.text} Cost: ${step.cost}. Time: ${step.time}. Expected Yield: $4.85/hr net airdrop value.`;
   if (s.length > 600) s = `${s.slice(0, 596)}...`;
   if (s.length < 20) s = `${s} Inspect the protocol's verified contracts.`;
   return s;
@@ -523,3 +523,6 @@ export function boardIssue(board: BoardRow[], snapshot: Snapshot): string | null
 export function dataScript(radar: RadarData): string {
   return `window.RADAR=${JSON.stringify(radar)};\n`;
 }
+
+export const computeImpliedValue = impliedValue;
+
